@@ -1,6 +1,9 @@
+let contents = ''
+
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.simplifiedText) {
+        contents = '';
         // try to remove popup if it already exists
         closeExistingPopup();
         showSimplifiedText(message.simplifiedText);
@@ -8,6 +11,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         appendTokenToContent(message.token);
     }
     if (message.waiting) {
+        contents = ''
         // try to remove popup if it already exists
         closeExistingPopup();
         showWaitingMessage();
@@ -29,6 +33,9 @@ async function showWaitingMessage() {
         showSimplifiedText('Waiting for OpenAI to respond...');
     } else if (lang == 'zh') {
         showSimplifiedText('等待OpenAI服务器回应...');
+    }
+    else{
+        showSimplifiedText('Waiting for OpenAI to respond...');
     }
 };
   
@@ -92,6 +99,11 @@ function showSimplifiedText(simplifiedText) {
     content.style.fontSize = '4mm';
     content.style.color = 'black';
   
+    // 将Markdown文本转换为HTML
+    const html = marked.parse(simplifiedText);
+    // 将HTML设置为内容的innerHTML
+    content.innerHTML = html;
+
     // Add the content and close button to the popup
     popup.appendChild(closeButton);
     popup.appendChild(content);
@@ -108,7 +120,7 @@ function showSimplifiedText(simplifiedText) {
 function getStoredLanguage() {
     return new Promise((resolve, reject) => {
         chrome.storage.sync.get(['language'], (result) => {
-        resolve(result.language);
+        resolve(result.language||'en');
         });
     });
     }
@@ -159,7 +171,8 @@ function makePopupDraggable(popup) {
 function appendTokenToContent(token) {
     const content = document.getElementById("simplified-text-content");
     if (content) {
-      content.innerHTML += token.replace(/\n/g, '<br>');
+      contents += token;
+      content.innerHTML = marked.parse(contents);
     }
   }
   
